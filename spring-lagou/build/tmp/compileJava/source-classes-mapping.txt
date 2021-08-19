@@ -1,0 +1,12 @@
+org/springframework/orm/MyApplication.java
+ org.springframework.orm.MyApplication
+org/springframework/orm/config/AppConfig.java
+ org.springframework.orm.config.AppConfig
+org/springframework/orm/configdao/ConfigDao1.java
+ org.springframework.orm.configdao.ConfigDao1
+org/springframework/orm/dao/IndexDao.java
+ org.springframework.orm.dao.IndexDao
+org/springframework/orm/configdao/ConfigDao2.java
+ org.springframework.orm.configdao.ConfigDao2
+org/springframework/orm/bean/Person.java
+ org.springframework.orm.bean.Person

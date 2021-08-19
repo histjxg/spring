@@ -1,0 +1,5 @@
+description = "Spring Object/Relational Mapping"
+
+dependencies {
+    api(project(":spring-context"))
+}
