@@ -364,6 +364,7 @@ public class QualifierAnnotationAutowireCandidateResolver extends GenericTypeAwa
 		if (annotationsToSearch.length > 0) {   // qualifier annotations have to be local
 			AnnotationAttributes attr = AnnotatedElementUtils.getMergedAnnotationAttributes(
 					AnnotatedElementUtils.forAnnotations(annotationsToSearch), this.valueAnnotationType);
+			//valueAnnotationType即为@Value
 			if (attr != null) {
 				return extractValue(attr);
 			}
