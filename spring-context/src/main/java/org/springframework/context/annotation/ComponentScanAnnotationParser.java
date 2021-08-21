@@ -120,6 +120,7 @@ class ComponentScanAnnotationParser {
 			basePackages.add(ClassUtils.getPackageName(clazz));
 		}
 		if (basePackages.isEmpty()) {
+			//declaringClass ：当前启动类
 			basePackages.add(ClassUtils.getPackageName(declaringClass));
 		}
 

@@ -582,6 +582,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			*         我们使用@Bean的方式, 就是使用的工厂模式, 自己控制实例化过程
 			*
 			*/
+			//核心的步骤：寻找构造器和通过反射调用构造器创建实例
 			instanceWrapper = createBeanInstance(beanName, mbd, args);
 		}
 		// 这里使用了装饰器的设计模式
@@ -1008,6 +1009,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		Object exposedObject = bean;
 		if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 			for (SmartInstantiationAwareBeanPostProcessor bp : getBeanPostProcessorCache().smartInstantiationAware) {
+				// 如果需要代理，这里会返回代理对象；否则返回原始对象
 				exposedObject = bp.getEarlyBeanReference(exposedObject, beanName);
 			}
 		}
@@ -1242,6 +1244,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Candidate constructors for autowiring?
+		//获取构造器
 		Constructor<?>[] ctors = determineConstructorsFromBeanPostProcessors(beanClass, beanName);
 		if (ctors != null || mbd.getResolvedAutowireMode() == AUTOWIRE_CONSTRUCTOR ||
 				mbd.hasConstructorArgumentValues() || !ObjectUtils.isEmpty(args)) {

@@ -627,6 +627,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 		protected void inject(Object bean, @Nullable String beanName, @Nullable PropertyValues pvs) throws Throwable {
 			Field field = (Field) this.member;
 			Object value;
+			//寻找“bean”
 			if (this.cached) {
 				try {
 					value = resolvedCachedArgument(beanName, this.cachedFieldValue);
@@ -640,6 +641,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 				value = resolveFieldValue(field, bean, beanName);
 			}
 			if (value != null) {
+				////将bean设置给成员字段
 				ReflectionUtils.makeAccessible(field);
 				field.set(bean, value);
 			}
