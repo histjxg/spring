@@ -548,12 +548,13 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 			// Prepare this context for refreshing.
 			//准备工作包括设置启动时间，是否激活标识位，
-			// 初始化属性源(property source)配置
+			// 初始化属性配置文件、检验必须属性以及监听器
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
 			//返回一个factory 为什么需要返回一个工厂
 			//因为要对工厂进行初始化
+			//给beanFactory设置序列化id
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
@@ -564,7 +565,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			 * 2.给beanFactory添加BeanPostProcessor：ApplicationContextAwareProcessor（可以插手bean的初始化，扩展点之一）
 			 * 3.给beanFactory添加系统配置和系统环境信息等实例。
 			 */
-
+			// 向beanFactory中注册了两个BeanPostProcessor,以及三个和环境相关的bean
+			// 这两个后置处理器为ApplicationContextAwareProcessor和ApplicationListenerDetector
+			// 前一个后置处理是为实现了ApplicationContextAware接口的类，回调setApplicationContext()方法，
+			// 后一个处理器时用来检测ApplicationListener类的，当某个Bean实现了ApplicationListener接口的bean被创建好后，会被加入到监听器列表中
 			prepareBeanFactory(beanFactory);
 
 			try {
@@ -957,6 +961,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.freezeConfiguration();
 
 		// Instantiate all remaining (non-lazy-init) singletons.
+		//实例化剩余的单例bean
 		beanFactory.preInstantiateSingletons();
 	}
 

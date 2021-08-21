@@ -248,14 +248,16 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	protected <T> T doGetBean(
 			String name, @Nullable Class<T> requiredType, @Nullable Object[] args, boolean typeCheckOnly)
 			throws BeansException {
-
+		// 第一步: 转换bean name. 在这里传入进来的name可能是别名, 也有可能是工厂bean的name, 所以在这里进行一个转换
 		String beanName = transformedBeanName(name);
 		Object beanInstance;
 
 		// Eagerly check singleton cache for manually registered singletons.
+		//从一二三级缓存中获取bean
 		Object sharedInstance = getSingleton(beanName);
 		if (sharedInstance != null && args == null) {
 			if (logger.isTraceEnabled()) {
+				//判断当前类是否是正在创建中
 				if (isSingletonCurrentlyInCreation(beanName)) {
 					logger.trace("Returning eagerly cached instance of singleton bean '" + beanName +
 							"' that is not fully initialized yet - a consequence of a circular reference");
@@ -270,11 +272,23 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		else {
 			// Fail if we're already creating this bean instance:
 			// We're assumably within a circular reference.
+			//多例bean不能循环依赖；
+			/**
+			* 判断当前的bean是不是多例, 如果是这抛出异常
+			*
+			* 判断当前这个bean是不是多例bean. 如果配置了@Scope("prototype") 就表示这是一个多例的bean
+			* spring 只能解决单例对象的setter注入的循环依赖, 不能解决构造器注入
+			*
+			* 如果是多例的bean, 当前正在创建bean, 也会抛出异常---这也是循环依赖的问题
+			*/
 			if (isPrototypeCurrentlyInCreation(beanName)) {
 				throw new BeanCurrentlyInCreationException(beanName);
 			}
 
 			// Check if bean definition exists in this factory.
+			/**
+			* 下面这段代码是关于子父容器的, 只有spring mvc继承自spring, 才会有子父容器的问题.
+			*/
 			BeanFactory parentBeanFactory = getParentBeanFactory();
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
 				// Not found -> check parent.
@@ -296,6 +310,12 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 			}
 
+			/**
+			* 方法参数typeCheckOnly是用来判断#getBean()方法时, 表示是否为仅仅进行类型检查,
+			* 如果不仅仅做类型检查, 而是创建bean对象, 则需要调用#markBeanAsCreated(String name)
+			*
+			*/
+
 			if (!typeCheckOnly) {
 				markBeanAsCreated(beanName);
 			}
@@ -310,6 +330,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				checkMergedBeanDefinition(mbd, beanName, args);
 
 				// Guarantee initialization of beans that the current bean depends on.
+				/**
+				* 现在有两个bean1, bean2 , 加载的时候调用的是bean1, bean2. 但如果我们想要bean2优先加载, 就使用@DependOn注解
+				* 用来解析带有dependOn注解的类
+				*/
+
 				String[] dependsOn = mbd.getDependsOn();
 				if (dependsOn != null) {
 					for (String dep : dependsOn) {
@@ -329,9 +354,17 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 
 				// Create bean instance.
-				if (mbd.isSingleton()) {
+				/**
+				 * 创建单例
+				 */
+				if (mbd.isSingleton()) {// 处理单例bean
+					/**
+					 * 这里getSingleton()和上面的getSigleton不一样, 上面的是从一级缓存中拿.
+					 * 这个getSingleton()就办了一件事: 将bean设置为正在创建的状态. 这个状态很重要, 如果出现循环依赖, 发现bean正在创建, 就不会再创建了
+					 */
 					sharedInstance = getSingleton(beanName, () -> {
 						try {
+							// 这里定义了一个钩子函数. 此时只是定义, 并不执行. 在真正需要创建bean的地方才会执行
 							return createBean(beanName, mbd, args);
 						}
 						catch (BeansException ex) {
@@ -342,23 +375,27 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 							throw ex;
 						}
 					});
+					// 得到bean实例对象
 					beanInstance = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
 				}
 
-				else if (mbd.isPrototype()) {
+				else if (mbd.isPrototype()) { // 处理多例bean
 					// It's a prototype -> create a new instance.
 					Object prototypeInstance = null;
 					try {
+						// 当前正在创建多例bean
 						beforePrototypeCreation(beanName);
+						// 执行创建bean
 						prototypeInstance = createBean(beanName, mbd, args);
 					}
 					finally {
 						afterPrototypeCreation(beanName);
 					}
+					// 获取bean实例对象
 					beanInstance = getObjectForBeanInstance(prototypeInstance, name, beanName, mbd);
 				}
 
-				else {
+				else { // 处理其他类型的bean
 					String scopeName = mbd.getScope();
 					if (!StringUtils.hasLength(scopeName)) {
 						throw new IllegalStateException("No scope name defined for bean ´" + beanName + "'");
