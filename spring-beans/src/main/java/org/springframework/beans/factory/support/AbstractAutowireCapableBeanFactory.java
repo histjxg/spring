@@ -561,8 +561,30 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
 		}
 		if (instanceWrapper == null) {
+			/**
+			* 第一步: 实例化  12              * 这里面的调用链非常深, 后面再看
+			* bean实例化有两种方式
+			* 1. 使用反射:  使用反射也有两种方式,
+			*         a. 通过无参构造函数 (默认的方式)
+			*             从beanDefinition中可以得到beanClass,
+			*             ClassName = BeanDefinition.beanClass
+			*             Class clazz = Class.forName(ClassName);
+			*             clazz.newInstance();
+			*             这样就可以实例化bean了
+			*
+			*         b. 通过有参函数.
+			*            ClassName = BeanDefinition.beanClass
+			*             Class clazz = Class.forName(ClassName);
+			*             Constractor con = class.getConstractor(args....)
+			*             con.newInstance();
+			*
+			* 2. 使用工厂
+			*         我们使用@Bean的方式, 就是使用的工厂模式, 自己控制实例化过程
+			*
+			*/
 			instanceWrapper = createBeanInstance(beanName, mbd, args);
 		}
+		// 这里使用了装饰器的设计模式
 		Object bean = instanceWrapper.getWrappedInstance();
 		Class<?> beanType = instanceWrapper.getWrappedClass();
 		if (beanType != NullBean.class) {
@@ -570,6 +592,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Allow post-processors to modify the merged bean definition.
+		// 允许后置处理器修改已经合并的beanDefinition
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {
@@ -585,6 +608,17 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Eagerly cache singletons to be able to resolve circular references
 		// even when triggered by lifecycle interfaces like BeanFactoryAware.
+
+		/**
+		* 缓存单例bean到三级缓存中, 以防止循环依赖
+		* 判断是否是早期引用的bean, 如果是, 则允许提前暴露引用
+		*
+		* 判断是否能够早起暴露的条件
+		 *     1. 是单例
+		*     2. 允许循环依赖
+		*     3. 正在创建的bean
+		*/
+
 		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
 				isSingletonCurrentlyInCreation(beanName));
 		if (earlySingletonExposure) {
@@ -592,13 +626,17 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				logger.trace("Eagerly caching bean '" + beanName +
 						"' to allow for resolving potential circular references");
 			}
+			// 把我们的早期对象包装成一个singletonFactory对象, 该对象提供了getObject()方法, 把静态的bean放到三级缓存中去了.
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
 		// Initialize the bean instance.
 		Object exposedObject = bean;
 		try {
+			// 第二步:填充属性, 给属性赋值(调用set方法)  这里也是调用的后置处理器
 			populateBean(beanName, mbd, instanceWrapper);
+			// 第三步: 初始化.
+			//在初始化bean的时候, 会调用很多的aware. 还会调用init-method方法. 以及bean的后置处理器.
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
 		catch (Throwable ex) {
@@ -610,8 +648,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 						mbd.getResourceDescription(), beanName, "Initialization of bean failed", ex);
 			}
 		}
-
+				/**
+ 	         	* 初始化完成以后, 判断是否是早期的对象
+				* 是循环依赖. 才会走进这里来
+ 		          */
 		if (earlySingletonExposure) {
+			// 去缓存中获取到我们的对象 由于传递的allowEarlyReference是false, 要求只能在一级二级缓存中取
+			// 正常的普通的bean(不存在循环依赖的bean) 创建的过程中, 不会把三级缓存提升到二级缓存中.
 			Object earlySingletonReference = getSingleton(beanName, false);
 			if (earlySingletonReference != null) {
 				if (exposedObject == bean) {
@@ -621,6 +664,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					String[] dependentBeans = getDependentBeans(beanName);
 					Set<String> actualDependentBeans = new LinkedHashSet<>(dependentBeans.length);
 					for (String dependentBean : dependentBeans) {
+						//调用方法, 删除缓存.
 						if (!removeSingletonIfCreatedForTypeCheckOnly(dependentBean)) {
 							actualDependentBeans.add(dependentBean);
 						}
@@ -1386,8 +1430,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		PropertyValues pvs = (mbd.hasPropertyValues() ? mbd.getPropertyValues() : null);
-
+		// 判断属性是否有Autowired注解
 		int resolvedAutowireMode = mbd.getResolvedAutowireMode();
+		// Autowired是根据名字或者根据类型
 		if (resolvedAutowireMode == AUTOWIRE_BY_NAME || resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
 			MutablePropertyValues newPvs = new MutablePropertyValues(pvs);
 			// Add property values based on autowire by name if applicable.
@@ -1450,6 +1495,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		String[] propertyNames = unsatisfiedNonSimpleProperties(mbd, bw);
 		for (String propertyName : propertyNames) {
 			if (containsBean(propertyName)) {
+				//会再次调用getBean方法. 构建bean. 这是就有可能出现循环依赖了.
 				Object bean = getBean(propertyName);
 				pvs.add(propertyName, bean);
 				registerDependentBean(propertyName, beanName);
