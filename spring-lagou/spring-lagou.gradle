@@ -2,4 +2,5 @@ description = "Spring Object/Relational Mapping"
 
 dependencies {
     api(project(":spring-context"))
+    compile "org.aspectj:aspectjweaver:1.9.4"
 }

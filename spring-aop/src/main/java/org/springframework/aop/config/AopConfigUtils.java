@@ -55,7 +55,7 @@ public abstract class AopConfigUtils {
 	 * Stores the auto proxy creator classes in escalation order.
 	 */
 	private static final List<Class<?>> APC_PRIORITY_LIST = new ArrayList<>(3);
-
+	//在spring中，默认存在三个代理生成类。优先级别从上到下排序，越往后优先级越高
 	static {
 		// Set up the escalation list...
 		APC_PRIORITY_LIST.add(InfrastructureAdvisorAutoProxyCreator.class);
@@ -123,6 +123,8 @@ public abstract class AopConfigUtils {
 		if (registry.containsBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME)) {
 			BeanDefinition apcDefinition = registry.getBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME);
 			if (!cls.getName().equals(apcDefinition.getBeanClassName())) {
+				// 如果容器当前已经注册了代理生成器类，则比较其与AnnotationAwareAspectJAutoProxyCreator的优先级。取优先级最高的那个作为代理生成器注册在容器中
+				// 显然AnnotationAwareAspectJAutoProxyCreator被注册到容器中
 				int currentPriority = findPriorityForClass(apcDefinition.getBeanClassName());
 				int requiredPriority = findPriorityForClass(cls);
 				if (currentPriority < requiredPriority) {
