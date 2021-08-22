@@ -83,6 +83,12 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 		// @AfterThrowing methods due to the fact that AspectJAfterAdvice.invoke(MethodInvocation)
 		// invokes proceed() in a `try` block and only invokes the @After advice method
 		// in a corresponding `finally` block.
+//		ConvertingComparator
+//		第一个参数是基准比较器，即在 adviceKindComparator 中最终要调用的比较器，在构
+//		造函数中赋值于 this.comparator；
+//		第二个参数是一个 lambda 回调函数，用来将传递的参数转化为基准比较器需要的参数
+//		类型，在构造函数中赋值于 this.converter。
+		////第一个比较器，用来按照增强类型排序
 		Comparator<Method> adviceKindComparator = new ConvertingComparator<>(
 				new InstanceComparator<>(
 						Around.class, Before.class, After.class, AfterReturning.class, AfterThrowing.class),
@@ -90,7 +96,9 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 					AspectJAnnotation<?> ann = AbstractAspectJAdvisorFactory.findAspectJAnnotationOnMethod(method);
 					return (ann != null ? ann.getAnnotation() : null);
 				});
+		////第二个比较器，用来按照方法名排序
 		Comparator<Method> methodNameComparator = new ConvertingComparator<>(Method::getName);
+		//合并上面两者比较器
 		adviceMethodComparator = adviceKindComparator.thenComparing(methodNameComparator);
 	}
 
@@ -168,6 +176,7 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 		List<Method> methods = new ArrayList<>();
 		ReflectionUtils.doWithMethods(aspectClass, methods::add, adviceMethodFilter);
 		if (methods.size() > 1) {
+			// 排序
 			methods.sort(adviceMethodComparator);
 		}
 		return methods;

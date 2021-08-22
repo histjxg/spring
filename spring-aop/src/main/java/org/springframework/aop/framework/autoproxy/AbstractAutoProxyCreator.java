@@ -468,6 +468,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			}
 		}
 		// 生成Advisor
+		//数组的顺序绝对了多个前面的执行顺序
 		Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
 		//然后将通知器（advisors）
 		proxyFactory.addAdvisors(advisors);

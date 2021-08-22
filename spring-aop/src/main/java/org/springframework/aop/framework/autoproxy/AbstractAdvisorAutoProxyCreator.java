@@ -69,7 +69,17 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 		this.advisorRetrievalHelper = new BeanFactoryAdvisorRetrievalHelperAdapter(beanFactory);
 	}
 
-
+	/**
+	 * 根据当前的 beanClass、beanName 等信息，结合所有候选的advisors，最终找出匹配（Eligible）的 Advisor
+	 * 问题：为什么如此：
+	 * 毕竟 AOP 拦截点可能会配置多个，而我们执行的方法不见得会被所有的拦截配置拦截。
+	 * 寻找匹配 Advisor 的逻辑参考 AbstractAdvisorAutoProxyCreator
+	 *
+	 * @param beanClass the class of the bean to advise
+	 * @param beanName the name of the bean
+	 * @param targetSource
+	 * @return
+	 */
 	@Override
 	@Nullable
 	protected Object[] getAdvicesAndAdvisorsForBean(
@@ -93,10 +103,15 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 * @see #extendAdvisors
 	 */
 	protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
+		//寻找候选的 Advisor
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
+		//根据候选的 Advisor 和当前 bean 算出匹配的 Advisor
 		List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
 		extendAdvisors(eligibleAdvisors);
 		if (!eligibleAdvisors.isEmpty()) {
+			//排序 决定的因素：
+			// 1. candidateAdvisors 的顺序
+			//2. sortAdvisors 进行的排序。
 			eligibleAdvisors = sortAdvisors(eligibleAdvisors);
 		}
 		return eligibleAdvisors;
