@@ -355,10 +355,12 @@ class DisposableBeanAdapter implements DisposableBean, Runnable, Serializable {
 				destroyMethodName = null;
 				if (!(bean instanceof DisposableBean)) {
 					try {
+						//尝试查找 close 方法
 						destroyMethodName = bean.getClass().getMethod(CLOSE_METHOD_NAME).getName();
 					}
 					catch (NoSuchMethodException ex) {
 						try {
+							//尝试查找 shutdown 方法
 							destroyMethodName = bean.getClass().getMethod(SHUTDOWN_METHOD_NAME).getName();
 						}
 						catch (NoSuchMethodException ex2) {
