@@ -14,6 +14,7 @@ import java.util.Objects;
 
 
 public class MyApplication {
+
 	public static void main(String[] args) {
 		//第一种方式ClassPathXmlApplicationContext
 //		ApplicationContext context =

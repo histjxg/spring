@@ -144,8 +144,10 @@ public abstract class AbstractNamedValueMethodArgumentResolver implements SyncHa
 	 * replace {@link ValueConstants#DEFAULT_NONE} with null.
 	 */
 	private NamedValueInfo updateNamedValueInfo(MethodParameter parameter, NamedValueInfo info) {
+		//其中 NamedValueInfo 的 name 为 @RequestParam 指定的值
 		String name = info.name;
 		if (info.name.isEmpty()) {
+
 			name = parameter.getParameterName();
 			if (name == null) {
 				throw new IllegalArgumentException(
